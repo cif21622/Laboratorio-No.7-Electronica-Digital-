@@ -1,0 +1,122 @@
+//*****************************************************************************
+// Universidad del Valle de Guatemala
+// BE3015 - Electrónica Digital 2
+// César Cifuentes Carné:21622
+// Laboratorio No.7
+//*****************************************************************************
+//*****************************************************************************
+// Librerías
+//*****************************************************************************
+#include <Arduino.h>
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+
+
+//Se Activa y define el LCD I2C que se estará usando 
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+uint8_t contador = 0;
+
+
+//Definición de Variables 
+//Pin para el potenciometro 1 y variables para almacentar valores recividos de la tiva C
+#define pot1 34
+int Contador;
+float POT2;
+float Voltaje2;
+float voltaje1;
+float voltaje1_P;
+//Variables para enviar y recibir el valor del Potenciometro 1 y 2 
+int unidad1, decimal1, centesima1;
+float unidad2, decimal2, centesima2;
+
+
+// Configuración
+//*****************************************************************************
+void setup() {
+//Comunicación entre computadora y entre ESP32 Y TIVA C
+Serial.begin(115200);   
+Serial.println("Conexión con computadora Completa");
+Serial2.begin(115200); 
+Serial.println("Conexión con Tiva C Completa");
+
+// Inicializar el LCD
+lcd.init();
+//Encender la luz de fondo.
+lcd.backlight();
+
+// Escribimos el Mensaje en el LCD y luego definimos para que se mantiene constante 
+lcd.print("Hola Mundo");
+lcd.clear();
+lcd.setCursor(0,0);
+lcd.print("Pot1:");
+lcd.setCursor(6,0);
+lcd.print("POT2");
+lcd.setCursor(12,0);
+lcd.print("CPU:");
+
+
+
+
+}
+//*****************************************************************************
+// Loop Principal
+//*****************************************************************************
+void loop() {
+//Lectura del Valor analógico del potenciometro 
+int pot1Valor = analogRead(pot1); // Lee el valor del primer potenciómetro 
+voltaje1 = pot1Valor * (3.3 / 4095.0); // Convierte la lectura a voltaje (3.3V referencia)
+//Se separa el valor del voltaje en dígitos para poder enviarlo por medio de comunicación serial 
+unidad1 = voltaje1; 
+decimal1 = (voltaje1-unidad1)*10;
+centesima1 = (voltaje1-(unidad1+(decimal1/10)))*100;
+
+
+//Si hay un cambio en el valor medido del potenciometro 1, se separa en dígitos al ESP32, para que en la TIVA C se tomen estos valores
+
+if (voltaje1 != voltaje1_P) {
+//Configuración 
+lcd.setCursor(0,1);
+lcd.print(voltaje1);
+voltaje1_P = voltaje1;
+Serial.println("El valor actual del voltaje en el potenciomoetro 1 es:");
+Serial.println(voltaje1_P);
+Serial2.write('v');
+Serial2.write(unidad1);
+Serial2.write(decimal1);
+Serial2.write(centesima1);
+Serial.println("Se envió Dato");
+   }
+
+
+//Se habilita que al recibir los datos de la TIVA C  se verifique si se envia el valor del Potenciometro uno,
+//en caso de que si lo haga se procede a guaradar lo digitos de este valor y luego unirlos en la variable POT2 de manera de un entero y dos decimales 
+ 
+if(Serial2.available()>0){
+  char comando = Serial2.read();
+  if(comando == '+'){
+  Contador = Serial2.read();
+  Serial.println("Contador Binario:");
+  Serial.println(Contador);
+  lcd.setCursor(13,1);
+  lcd.print(" ");
+  lcd.setCursor(14,1);
+  lcd.print(" ");
+  lcd.setCursor(12,1);
+  lcd.print(Contador);
+}
+
+  if(comando == '-'){
+  unidad2 = Serial2.read();
+  decimal2 = Serial2.read();
+  centesima2 = Serial2.read();
+  POT2= unidad2+(decimal2)/10 +(centesima2)/1000;
+  Serial.println("Potenciometro 2:");
+  Serial.println(POT2);
+  lcd.setCursor(6,1);
+  lcd.print(POT2);
+}
+
+}
+delay(250);
+
+}
