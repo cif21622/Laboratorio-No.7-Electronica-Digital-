@@ -1,0 +1,155 @@
+
+//Laboratorio No.7 
+//César CIfuentes 21622
+//Parte Final 
+//Código de la Tiva C 
+
+//Variables Gblobales 
+//Se definen las variables de los bótones 
+#define BotonB1 PUSH1
+#define BotonB2 PUSH2
+
+// S edefinen las Leds para la regulación de la Luz Led por medio de PWM y los valores del potenciometro y del contador binario 
+#define LEDR RED_LED
+#define LEDB BLUE_LED
+#define LEDG GREEN_LED
+
+//Se definen las variables para verificar el estado del bóton y verificar si se incrementa o decrementa el bóton 
+volatile bool incremento = true; 
+volatile bool decremento = true;
+
+//Variable del contador 
+volatile int Contadorbinario = 0;
+//Variable utilizada para recibir la comunicación desde el ESP32 
+char Receptor;
+
+//Variables del Potenciometro No.1 
+int Pot2 = A0;    // VPin del Potenciometro 2 
+int ValPot2 = 0;  // Lectura dígital del Valor del potenciometero 2
+float Voltaje2; //Conversión del voltaje del potenciometro 2 a señal dígital 
+float Voltaje2_P; //Médio de verificación del voltaje del potenciometro 2 
+float POT1; //Valor del potenciometro 
+float ValorPot1;
+float Voltaje1;
+//Variables para enviar y recibir el valor del Potenciometro 1 y 2 
+float unidad1, decimal1, centesima1;
+int unidad2, decimal2, centesima2;
+int PWMPOT1, PWMPOT2, PWMCONT;
+
+
+
+
+
+
+void setup() {
+
+
+// put your setup code here, to run once:
+Serial.begin(115200);
+pinMode(BotonB1, INPUT_PULLUP);
+attachInterrupt(BotonB1, ISR_1, FALLING);
+pinMode(BotonB2, INPUT_PULLUP);
+attachInterrupt(BotonB2, ISR_2, FALLING);
+Serial.println("Conexión con Computadora  Completa");
+Serial2.begin(115200); 
+Serial.println("Conexión con ESP332 Completa ");
+}
+
+void loop() {
+  // read the value from the sensor:
+ValPot2 = analogRead(Pot2);  
+Voltaje2 = ((ValPot2)*(3.3))/(4095);
+unidad2 = Voltaje2; 
+decimal2 = (Voltaje2-unidad2)*10;
+centesima2 = (Voltaje2-(unidad2+(decimal2/10)))*100;
+
+
+
+ if(Serial2.available()>0){
+  char comando = Serial2.read();
+  if(comando == 'v'){
+  unidad1 = Serial2.read()-0 ;
+  decimal1 = Serial2.read()-0;
+  centesima1 = Serial2.read()-0;
+  ValorPot1= (unidad1+((decimal1)/10)+((centesima1)/1000));
+}
+}
+
+
+if (!incremento) {
+    Contadorbinario =  Contadorbinario+1; 
+    if (Contadorbinario==256) {
+    Contadorbinario = 0; 
+    }
+    delay(200);
+    incremento = true;
+    Serial2.write('+');
+    Serial2.write(Contadorbinario);
+    
+
+    }
+if (!decremento) {
+    Contadorbinario =  Contadorbinario-1; 
+    if (Contadorbinario==-1) {
+    Contadorbinario = 255; 
+    }
+    delay(200);
+    decremento = true;
+
+    Serial2.write('+');
+    Serial2.write(Contadorbinario);
+    }
+
+if (Voltaje2 != Voltaje2_P) {
+  //Configuración 
+  Voltaje2_P = Voltaje2;
+  Serial2.write('-');
+  Serial2.write(unidad2);
+  Serial2.write(decimal2);
+  Serial2.write(centesima2);
+  }
+  
+PWMPOT1 = (((255)*(ValorPot1))/(3.3));
+PWMPOT2 = (((255)*(Voltaje2))/(3.3));
+PWMCONT = ((Contadorbinario));
+
+analogWrite(LEDR,PWMPOT1 );
+analogWrite(LEDG,PWMPOT2 );
+analogWrite(LEDB,PWMCONT);
+Serial.println(" Voltaje Potenciometro 1:");
+Serial.println(ValorPot1);
+Serial.println("El valor actual del voltaje en el potenciomoetro 2 es:");
+Serial.println(Voltaje2);
+Serial.println("El valor actual del Contador Binario es");
+Serial.println(Contadorbinario);
+delay(250);
+
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//Vector de interrupción 
+//*****************************************************************************
+
+//Estas interrupciones sirven para generar el aumento o decremento de los ciclos de trabajo al presionar los bótones B1, B2, B4
+void ISR_1() {
+  incremento = false;
+}
+
+void ISR_2() {
+  decremento = false;
+}
