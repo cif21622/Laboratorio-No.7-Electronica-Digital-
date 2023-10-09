@@ -124,7 +124,7 @@ PWMCONT = ((Contadorbinario));
 //Se escribe el valor del PWM y se envia 
 analogWrite(LEDR,PWMPOT1 );
 analogWrite(LEDG,PWMPOT2 );
-analogWrite(LEDB,PWMCONT);}
+analogWrite(LEDB,PWMCONT);
 //Se da la comunicación con la computadora para poder mostrar los valores que se tienen en el LCD 
 Serial.println(" Voltaje Potenciometro 1:");
 Serial.println(ValorPot1);
